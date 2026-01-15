@@ -8,5 +8,9 @@ services:
   api_authentification:
     build: ../
     container_name: api_authentification
+    depends_on:
+      - mongo
+    environment:
+      SPRING_DATA_MONGODB_URI: mongodb://mongo:27017/users
     ports:
       - "8080:8080"
