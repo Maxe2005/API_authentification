@@ -1,8 +1,0 @@
-spring.application.name: demo2026
-
-spring:
-  data:
-    mongodb:
-      uuid-representation: standard
-      database: demo2026db
-      port: 27017

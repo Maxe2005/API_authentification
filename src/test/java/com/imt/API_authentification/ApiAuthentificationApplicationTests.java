@@ -1,13 +1,13 @@
-package com.imt.demo2026;
+package com.imt.API_authentification;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class Demo2026ApplicationTests {
+class ApiAuthentificationApplicationTests {
 
-    @Test
-    void contextLoads() {
-    }
+	@Test
+	void contextLoads() {
+	}
 
 }
