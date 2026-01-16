@@ -1,6 +1,7 @@
 package com.imt.API_authentification.controller;
 
 import com.imt.API_authentification.controller.dto.input.UserHttpDTO;
+import com.imt.API_authentification.controller.dto.output.LoginHttpDTO;
 import com.imt.API_authentification.persistence.dto.UserMongoDTO;
 import com.imt.API_authentification.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -33,8 +34,16 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public String login(){
-        return "login";
+    public ResponseEntity<LoginHttpDTO> login(@RequestBody UserHttpDTO userHttpDTO){
+        UserMongoDTO user = userService.getUser(userHttpDTO.getUsername());
+        if (user != null) {
+            if (user.getPassword().equals(userHttpDTO.getPassword())) {
+                return ResponseEntity.ok(new LoginHttpDTO("token"));
+            } else {
+                return ResponseEntity.badRequest().build();
+            }
+        } else {
+            return ResponseEntity.notFound().build();
+        }
     }
-
 }
