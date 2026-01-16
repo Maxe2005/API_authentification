@@ -6,6 +6,7 @@ import com.imt.API_authentification.persistence.dto.UserMongoDTO;
 import com.imt.API_authentification.service.UserService;
 import com.imt.API_authentification.utils.AuthHandler;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -49,11 +50,11 @@ public class UserController {
     }
 
     @GetMapping("/verify-token/{token}")
-    public ResponseEntity verifyToken(@RequestBody String token) {
+    public HttpStatus verifyToken(@RequestBody String token) {
         if (AuthHandler.validateToken(token)) {
-            return ResponseEntity.ok().build();
+            return HttpStatus.OK;
         } else {
-            return ResponseEntity.badRequest().build();
+            return HttpStatus.UNAUTHORIZED;
         }
     }
 }
