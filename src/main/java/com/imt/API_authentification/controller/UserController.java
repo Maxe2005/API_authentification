@@ -4,6 +4,7 @@ import com.imt.API_authentification.controller.dto.input.UserHttpDTO;
 import com.imt.API_authentification.controller.dto.output.LoginHttpDTO;
 import com.imt.API_authentification.persistence.dto.UserMongoDTO;
 import com.imt.API_authentification.service.UserService;
+import com.imt.API_authentification.utils.AuthHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -44,6 +45,15 @@ public class UserController {
             }
         } else {
             return ResponseEntity.notFound().build();
+        }
+    }
+
+    @GetMapping("/verify-token/{token}")
+    public ResponseEntity verifyToken(@RequestBody String token) {
+        if (AuthHandler.validateToken(token)) {
+            return ResponseEntity.ok().build();
+        } else {
+            return ResponseEntity.badRequest().build();
         }
     }
 }
