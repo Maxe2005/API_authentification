@@ -12,6 +12,10 @@ import java.util.UUID;
 public class UserService {
     private final UserMongoDAO userMongoDAO;
 
+    public UserMongoDTO getUser(String username) {
+        return userMongoDAO.findByUsername(username);
+    }
+
     public boolean register(String username, String password) {
         UserMongoDTO user = new UserMongoDTO(
             UUID.randomUUID(),
