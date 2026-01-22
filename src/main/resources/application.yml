@@ -8,3 +8,13 @@ spring:
     representation:
       uuid: standard
     authentication-database: admin
+
+# Actuator configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: always

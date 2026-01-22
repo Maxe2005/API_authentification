@@ -50,7 +50,7 @@ public class UserController {
     }
 
     @GetMapping("/verify-token/{token}")
-    public HttpStatus verifyToken(@RequestBody String token) {
+    public HttpStatus verifyToken(@PathVariable String token) {
         if (AuthHandler.validateToken(token)) {
             return HttpStatus.OK;
         } else {
