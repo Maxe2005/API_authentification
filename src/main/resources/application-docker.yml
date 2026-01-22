@@ -1,3 +1,4 @@
 spring:
-  mongodb:
-    host: mongo
+  data:
+    mongodb:
+      host: mongo
