@@ -1,10 +1,20 @@
 spring:
-  mongodb:
-    host: localhost
-    port: 27017
-    database: users
-    username: mongoadmin
-    password: password
-    representation:
-      uuid: standard
-    authentication-database: admin
+  data:
+    mongodb:
+      host: localhost
+      port: 27017
+      database: users
+      username: mongoadmin
+      password: password
+      uuid-representation: standard
+      authentication-database: admin
+
+# Actuator configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: always
