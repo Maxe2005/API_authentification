@@ -30,21 +30,37 @@ public class AESUtil {
                 .getEncoded(), "AES");
     }
 
-    public static String encryptPasswordBased(String plainText, SecretKey key, GCMParameterSpec iv)
+    public static String encryptPasswordBased(String plainText, SecretKey key)
             throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException,
             InvalidKeyException, BadPaddingException, IllegalBlockSizeException {
+        byte[] iv = new byte[12];
+        new SecureRandom().nextBytes(iv);
+        GCMParameterSpec spec = new GCMParameterSpec(128, iv);
+
         Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-        cipher.init(Cipher.ENCRYPT_MODE, key, iv);
-        return Base64.getEncoder()
-                .encodeToString(cipher.doFinal(plainText.getBytes()));
+        cipher.init(Cipher.ENCRYPT_MODE, key, spec);
+        byte[] cipherText = cipher.doFinal(plainText.getBytes());
+
+        byte[] message = new byte[12 + cipherText.length];
+        System.arraycopy(iv, 0, message, 0, 12);
+        System.arraycopy(cipherText, 0, message, 12, cipherText.length);
+
+        return Base64.getEncoder().encodeToString(message);
     }
 
-    public static String decryptPasswordBased(String cipherText, SecretKey key, GCMParameterSpec iv)
+    public static String decryptPasswordBased(String cipherText, SecretKey key)
             throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException,
             InvalidKeyException, BadPaddingException, IllegalBlockSizeException {
+        byte[] decode = Base64.getDecoder().decode(cipherText);
+
+        byte[] iv = new byte[12];
+        System.arraycopy(decode, 0, iv, 0, 12);
+        GCMParameterSpec spec = new GCMParameterSpec(128, iv);
+
         Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
-        cipher.init(Cipher.DECRYPT_MODE, key, iv);
-        return new String(cipher.doFinal(Base64.getDecoder()
-                .decode(cipherText)));
+        cipher.init(Cipher.DECRYPT_MODE, key, spec);
+
+        byte[] plainText = cipher.doFinal(decode, 12, decode.length - 12);
+        return new String(plainText);
     }
 }

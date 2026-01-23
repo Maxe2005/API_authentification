@@ -1,5 +1,6 @@
 package com.imt.API_authentification.controller;
 
+import com.imt.API_authentification.controller.dto.input.TokenHttpDTO;
 import com.imt.API_authentification.controller.dto.input.UserHttpDTO;
 import com.imt.API_authentification.controller.dto.output.LoginHttpDTO;
 import com.imt.API_authentification.persistence.dto.UserMongoDTO;
@@ -9,6 +10,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 
 @RestController
 @RequestMapping("/user")
@@ -40,7 +48,12 @@ public class UserController {
         UserMongoDTO user = userService.getUser(userHttpDTO.getUsername());
         if (user != null) {
             if (user.getPassword().equals(userHttpDTO.getPassword())) {
-                return ResponseEntity.ok(new LoginHttpDTO("token"));
+                try {
+                    return ResponseEntity.ok(new LoginHttpDTO(AuthHandler.generateToken(user.getUsername())));
+                } catch (InvalidAlgorithmParameterException | NoSuchAlgorithmException | BadPaddingException |
+                         InvalidKeyException | NoSuchPaddingException | IllegalBlockSizeException e) {
+                    throw new RuntimeException(e);
+                }
             } else {
                 return ResponseEntity.badRequest().build();
             }
@@ -49,12 +62,17 @@ public class UserController {
         }
     }
 
-    @GetMapping("/verify-token/{token}")
-    public HttpStatus verifyToken(@RequestBody String token) {
-        if (AuthHandler.validateToken(token)) {
-            return HttpStatus.OK;
-        } else {
-            return HttpStatus.UNAUTHORIZED;
+    @GetMapping("/verify-token")
+    public HttpStatus verifyToken(@RequestBody TokenHttpDTO tokenHttpDTO) {
+        try {
+            if (AuthHandler.validateToken(tokenHttpDTO.getUsername(), tokenHttpDTO.getToken())) {
+                return HttpStatus.OK;
+            } else {
+                return HttpStatus.UNAUTHORIZED;
+            }
+        } catch (InvalidAlgorithmParameterException | NoSuchPaddingException | IllegalBlockSizeException |
+                 NoSuchAlgorithmException | BadPaddingException | InvalidKeyException e) {
+            throw new RuntimeException(e);
         }
     }
 }
