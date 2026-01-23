@@ -62,7 +62,7 @@ public class UserController {
         }
     }
 
-    @GetMapping("/verify-token")
+    @PostMapping("/verify-token")
     public HttpStatus verifyToken(@RequestBody TokenHttpDTO tokenHttpDTO) {
         try {
             if (AuthHandler.validateToken(tokenHttpDTO.getUsername(), tokenHttpDTO.getToken())) {
