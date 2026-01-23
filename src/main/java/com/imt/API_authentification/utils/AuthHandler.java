@@ -24,24 +24,28 @@ public class AuthHandler {
         }
     }
 
-    public static String generateToken(String username) throws InvalidAlgorithmParameterException, NoSuchPaddingException,
-            IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
-        String token = new Token(username).toString();
-        return AESUtil.encryptPasswordBased(token, key);
+    public static String generateToken(String username) {
+        try {
+            String token = new Token(username).toString();
+            return AESUtil.encryptPasswordBased(token, key);
+        } catch (InvalidAlgorithmParameterException | NoSuchPaddingException | IllegalBlockSizeException |
+                 NoSuchAlgorithmException | BadPaddingException | InvalidKeyException e) {
+            throw new RuntimeException(e);
+        }
     }
 
-    public static boolean validateToken(String username, String token) throws InvalidAlgorithmParameterException, NoSuchPaddingException,
-            IllegalBlockSizeException, NoSuchAlgorithmException, BadPaddingException, InvalidKeyException {
-        String rawDecryptedToken = AESUtil.decryptPasswordBased(token, key);
-        Token parsedToken = Token.fromString(rawDecryptedToken);
+    public static String validateToken(String token) {
+        try {
+            String rawDecryptedToken = AESUtil.decryptPasswordBased(token, key);
+            Token parsedToken = Token.fromString(rawDecryptedToken);
 
-        if (parsedToken.getUsername().equals(username)) {
-            if (parsedToken.getExpirationDate().isAfter(LocalDateTime.now())) {
-                return true;
+            if(parsedToken.getExpirationDate().isAfter(LocalDateTime.now())) {
+                return parsedToken.getUsername();
             }
-            return false;
+            else return null;
+        } catch (InvalidAlgorithmParameterException | NoSuchPaddingException | IllegalBlockSizeException |
+                 NoSuchAlgorithmException | BadPaddingException | InvalidKeyException e) {
+            throw new RuntimeException(e);
         }
-
-        return false;
     }
 }

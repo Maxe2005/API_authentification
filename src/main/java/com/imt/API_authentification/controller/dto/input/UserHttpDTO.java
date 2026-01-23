@@ -1,11 +1,13 @@
 package com.imt.API_authentification.controller.dto.input;
 
 import lombok.Getter;
+import lombok.Setter;
 
 @Getter
+@Setter
 public class UserHttpDTO {
-    private final String username;
-    private final String password;
+    private String username;
+    private String password;
 
     public UserHttpDTO(String username, String password) {
         this.username = username;

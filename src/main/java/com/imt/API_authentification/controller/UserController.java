@@ -1,8 +1,9 @@
 package com.imt.API_authentification.controller;
 
-import com.imt.API_authentification.controller.dto.input.TokenHttpDTO;
+import com.imt.API_authentification.controller.dto.input.TokenHttpRequestDTO;
 import com.imt.API_authentification.controller.dto.input.UserHttpDTO;
 import com.imt.API_authentification.controller.dto.output.LoginHttpDTO;
+import com.imt.API_authentification.controller.dto.output.TokenHttpResponseDTO;
 import com.imt.API_authentification.persistence.dto.UserMongoDTO;
 import com.imt.API_authentification.service.UserService;
 import com.imt.API_authentification.utils.AuthHandler;
@@ -11,13 +12,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-
 @RestController
 @RequestMapping("/user")
 @RequiredArgsConstructor
@@ -25,20 +19,10 @@ public class UserController {
 
     private final UserService userService;
 
-    @GetMapping("/{username}")
-    public ResponseEntity<UserMongoDTO> getUser(@PathVariable String username) {
-        UserMongoDTO user = userService.getUser(username);
-        if (user != null) {
-            return ResponseEntity.ok(user);
-        } else {
-            return ResponseEntity.notFound().build();
-        }
-    }
-
     @PostMapping
-    public ResponseEntity<UserHttpDTO> register(@RequestBody UserHttpDTO userHttpDTO){
+    public ResponseEntity<LoginHttpDTO> register(@RequestBody UserHttpDTO userHttpDTO){
         if (userService.register(userHttpDTO.getUsername(), userHttpDTO.getPassword())) {
-            return ResponseEntity.ok(userHttpDTO);
+            return ResponseEntity.ok(new LoginHttpDTO(AuthHandler.generateToken(userHttpDTO.getUsername())));
         }
         return ResponseEntity.badRequest().build();
     }
@@ -46,33 +30,24 @@ public class UserController {
     @PostMapping("/login")
     public ResponseEntity<LoginHttpDTO> login(@RequestBody UserHttpDTO userHttpDTO){
         UserMongoDTO user = userService.getUser(userHttpDTO.getUsername());
-        if (user != null) {
-            if (user.getPassword().equals(userHttpDTO.getPassword())) {
-                try {
-                    return ResponseEntity.ok(new LoginHttpDTO(AuthHandler.generateToken(user.getUsername())));
-                } catch (InvalidAlgorithmParameterException | NoSuchAlgorithmException | BadPaddingException |
-                         InvalidKeyException | NoSuchPaddingException | IllegalBlockSizeException e) {
-                    throw new RuntimeException(e);
-                }
-            } else {
-                return ResponseEntity.badRequest().build();
-            }
-        } else {
+        if (user == null) {
             return ResponseEntity.notFound().build();
+        }
+
+        if (user.getPassword().equals(userHttpDTO.getPassword())) {
+            return ResponseEntity.ok(new LoginHttpDTO(AuthHandler.generateToken(user.getUsername())));
+        } else {
+            return ResponseEntity.badRequest().build();
         }
     }
 
     @PostMapping("/verify-token")
-    public HttpStatus verifyToken(@RequestBody TokenHttpDTO tokenHttpDTO) {
-        try {
-            if (AuthHandler.validateToken(tokenHttpDTO.getUsername(), tokenHttpDTO.getToken())) {
-                return HttpStatus.OK;
-            } else {
-                return HttpStatus.UNAUTHORIZED;
-            }
-        } catch (InvalidAlgorithmParameterException | NoSuchPaddingException | IllegalBlockSizeException |
-                 NoSuchAlgorithmException | BadPaddingException | InvalidKeyException e) {
-            throw new RuntimeException(e);
+    public ResponseEntity<TokenHttpResponseDTO> verifyToken(@RequestBody TokenHttpRequestDTO tokenHttpRequestDTO) {
+        String user = AuthHandler.validateToken(tokenHttpRequestDTO.getToken());
+        if (user != null) {
+            return ResponseEntity.ok(new TokenHttpResponseDTO(user));
         }
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 }
