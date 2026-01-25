@@ -17,6 +17,9 @@ public class UserService {
     }
 
     public boolean register(String username, String password) {
+
+        if (getUser(username) != null) return false;
+
         UserMongoDTO user = new UserMongoDTO(
             UUID.randomUUID(),
             username,
