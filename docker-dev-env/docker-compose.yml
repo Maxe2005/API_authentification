@@ -9,10 +9,10 @@ services:
       - MONGO_INITDB_ROOT_USERNAME=mongoadmin
       - MONGO_INITDB_ROOT_PASSWORD=password
 
-#  api_authentification:
-#    build: ../
-#    container_name: api_authentification
-#    depends_on:
-#      - mongo
-#    ports:
-#      - "8080:8080"
+  api_authentification:
+    build: ../
+    container_name: api_authentification
+    depends_on:
+     - mongo
+    ports:
+     - "8081:8080"
