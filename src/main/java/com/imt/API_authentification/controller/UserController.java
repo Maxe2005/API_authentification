@@ -4,6 +4,7 @@ import com.imt.API_authentification.controller.dto.input.TokenHttpRequestDTO;
 import com.imt.API_authentification.controller.dto.input.UserHttpDTO;
 import com.imt.API_authentification.controller.dto.output.LoginHttpDTO;
 import com.imt.API_authentification.controller.dto.output.TokenHttpResponseDTO;
+import com.imt.API_authentification.exception.GlobalExceptionHandler;
 import com.imt.API_authentification.persistence.dto.UserMongoDTO;
 import com.imt.API_authentification.service.UserService;
 import com.imt.API_authentification.utils.AuthHandler;
@@ -31,7 +32,7 @@ public class UserController {
     public ResponseEntity<LoginHttpDTO> login(@RequestBody UserHttpDTO userHttpDTO){
         UserMongoDTO user = userService.getUser(userHttpDTO.getUsername());
         if (user == null) {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
         if (user.getPassword().equals(userHttpDTO.getPassword())) {
