@@ -12,13 +12,12 @@ import java.security.spec.InvalidKeySpecException;
 import java.time.LocalDateTime;
 
 public class AuthHandler {
-    private static final String secret = "super_secret_key_that_no_one_should_know";
-    private static final String salt = "123456789salt987654321";
     private static final SecretKey key;
 
     static {
         try {
-            key = AESUtil.getKeyFromPassword(secret,salt);
+            SecurityProperties secure = new SecurityProperties();
+            key = AESUtil.getKeyFromPassword(secure.getSecret(), secure.getSalt());
         } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
             throw new RuntimeException(e);
         }
@@ -27,7 +26,7 @@ public class AuthHandler {
     public static String generateToken(String username) {
         try {
             String token = new Token(username).toString();
-            return AESUtil.encryptPasswordBased(token, key);
+            return AESUtil.encryptPasswordBased(token, AuthHandler.key);
         } catch (InvalidAlgorithmParameterException | NoSuchPaddingException | IllegalBlockSizeException |
                  NoSuchAlgorithmException | BadPaddingException | InvalidKeyException e) {
             throw new RuntimeException(e);
