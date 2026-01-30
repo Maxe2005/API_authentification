@@ -4,7 +4,7 @@ import com.imt.API_authentification.controller.dto.input.TokenHttpRequestDTO;
 import com.imt.API_authentification.controller.dto.input.UserHttpDTO;
 import com.imt.API_authentification.controller.dto.output.LoginHttpDTO;
 import com.imt.API_authentification.controller.dto.output.TokenHttpResponseDTO;
-import com.imt.API_authentification.exception.TokenExpiredException;
+import com.imt.API_authentification.exception.TokenInvalidException;
 import com.imt.API_authentification.exception.UserCredsException;
 import com.imt.API_authentification.exception.UserDuplicateException;
 import com.imt.API_authentification.persistence.dto.UserMongoDTO;
@@ -48,11 +48,11 @@ public class UserController {
     }
 
     @PostMapping("/verify-token")
-    public ResponseEntity<TokenHttpResponseDTO> verifyToken(@RequestBody TokenHttpRequestDTO tokenHttpRequestDTO) throws TokenExpiredException {
+    public ResponseEntity<TokenHttpResponseDTO> verifyToken(@RequestBody TokenHttpRequestDTO tokenHttpRequestDTO) throws TokenInvalidException {
         String user = authHandler.validateToken(tokenHttpRequestDTO.getToken());
         if (user != null) {
             return ResponseEntity.ok(new TokenHttpResponseDTO(user));
-        } else throw new TokenExpiredException("Token expired");
+        } else throw new TokenInvalidException("Invalid token");
     }
 
     @PostMapping("/delete")
