@@ -53,6 +53,10 @@ public class AESUtil {
             InvalidKeyException, BadPaddingException, IllegalBlockSizeException {
         byte[] decode = Base64.getDecoder().decode(cipherText);
 
+        if (decode.length < 12) {
+            throw new IllegalArgumentException("Invalid encrypted data length");
+        }
+
         byte[] iv = new byte[12];
         System.arraycopy(decode, 0, iv, 0, 12);
         GCMParameterSpec spec = new GCMParameterSpec(128, iv);

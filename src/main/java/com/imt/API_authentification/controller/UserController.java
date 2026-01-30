@@ -43,6 +43,7 @@ public class UserController {
 
     @PostMapping("/verify-token")
     public ResponseEntity<TokenHttpResponseDTO> verifyToken(@RequestBody TokenHttpRequestDTO tokenHttpRequestDTO) {
+        System.out.println("Received token: " + tokenHttpRequestDTO.getToken());
         String user = AuthHandler.validateToken(tokenHttpRequestDTO.getToken());
         if (user != null) {
             return ResponseEntity.ok(new TokenHttpResponseDTO(user));

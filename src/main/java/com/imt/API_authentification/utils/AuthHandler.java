@@ -1,6 +1,5 @@
 package com.imt.API_authentification.utils;
 
-
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
@@ -18,7 +17,7 @@ public class AuthHandler {
 
     static {
         try {
-            key = AESUtil.getKeyFromPassword(secret,salt);
+            key = AESUtil.getKeyFromPassword(secret, salt);
         } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
             throw new RuntimeException(e);
         }
@@ -28,8 +27,8 @@ public class AuthHandler {
         try {
             String token = new Token(username).toString();
             return AESUtil.encryptPasswordBased(token, key);
-        } catch (InvalidAlgorithmParameterException | NoSuchPaddingException | IllegalBlockSizeException |
-                 NoSuchAlgorithmException | BadPaddingException | InvalidKeyException e) {
+        } catch (InvalidAlgorithmParameterException | NoSuchPaddingException | IllegalBlockSizeException
+                | NoSuchAlgorithmException | BadPaddingException | InvalidKeyException e) {
             throw new RuntimeException(e);
         }
     }
@@ -39,13 +38,13 @@ public class AuthHandler {
             String rawDecryptedToken = AESUtil.decryptPasswordBased(token, key);
             Token parsedToken = Token.fromString(rawDecryptedToken);
 
-            if(parsedToken.getExpirationDate().isAfter(LocalDateTime.now())) {
+            if (parsedToken.getExpirationDate().isAfter(LocalDateTime.now())) {
                 return parsedToken.getUsername();
-            }
-            else return null;
-        } catch (InvalidAlgorithmParameterException | NoSuchPaddingException | IllegalBlockSizeException |
-                 NoSuchAlgorithmException | BadPaddingException | InvalidKeyException e) {
-            throw new RuntimeException(e);
+            } else
+                return null;
+        } catch (InvalidAlgorithmParameterException | NoSuchPaddingException | IllegalBlockSizeException
+                | NoSuchAlgorithmException | BadPaddingException | InvalidKeyException | IllegalArgumentException e) {
+            return null;
         }
     }
 }
