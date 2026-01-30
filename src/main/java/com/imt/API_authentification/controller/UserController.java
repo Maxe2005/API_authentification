@@ -4,6 +4,9 @@ import com.imt.API_authentification.controller.dto.input.TokenHttpRequestDTO;
 import com.imt.API_authentification.controller.dto.input.UserHttpDTO;
 import com.imt.API_authentification.controller.dto.output.LoginHttpDTO;
 import com.imt.API_authentification.controller.dto.output.TokenHttpResponseDTO;
+import com.imt.API_authentification.exception.TokenExpiredException;
+import com.imt.API_authentification.exception.UserCredsException;
+import com.imt.API_authentification.exception.UserDuplicateException;
 import com.imt.API_authentification.persistence.dto.UserMongoDTO;
 import com.imt.API_authentification.service.UserService;
 import com.imt.API_authentification.utils.AuthHandler;
@@ -22,18 +25,17 @@ public class UserController {
     private final AuthHandler authHandler;
 
     @PostMapping
-    public ResponseEntity<LoginHttpDTO> register(@RequestBody UserHttpDTO userHttpDTO) throws ValidationException {
+    public ResponseEntity<LoginHttpDTO> register(@RequestBody UserHttpDTO userHttpDTO) throws ValidationException, UserDuplicateException {
         if (userHttpDTO.getUsername() == null) throw new ValidationException("Empty username");
         if (userHttpDTO.getPassword() == null) throw new ValidationException("Empty password");
 
         if (userService.register(userHttpDTO.getUsername(), userHttpDTO.getPassword())) {
             return ResponseEntity.ok(new LoginHttpDTO(authHandler.generateToken(userHttpDTO.getUsername())));
-        }
-        return ResponseEntity.badRequest().build();
+        } else throw new UserDuplicateException("User already exists");
     }
 
     @PostMapping("/login")
-    public ResponseEntity<LoginHttpDTO> login(@RequestBody UserHttpDTO userHttpDTO) throws ValidationException {
+    public ResponseEntity<LoginHttpDTO> login(@RequestBody UserHttpDTO userHttpDTO) throws ValidationException, UserCredsException {
         if (userHttpDTO.getUsername() == null) throw new ValidationException("Empty username");
         if (userHttpDTO.getPassword() == null) throw new ValidationException("Empty password");
 
@@ -42,18 +44,15 @@ public class UserController {
 
         if (user.getPassword().equals(userHttpDTO.getPassword())) {
             return ResponseEntity.ok(new LoginHttpDTO(authHandler.generateToken(user.getUsername())));
-        } else {
-            return ResponseEntity.badRequest().build();
-        }
+        } else throw new UserCredsException("Incorrect username or password");
     }
 
     @PostMapping("/verify-token")
-    public ResponseEntity<TokenHttpResponseDTO> verifyToken(@RequestBody TokenHttpRequestDTO tokenHttpRequestDTO) {
+    public ResponseEntity<TokenHttpResponseDTO> verifyToken(@RequestBody TokenHttpRequestDTO tokenHttpRequestDTO) throws TokenExpiredException {
         String user = authHandler.validateToken(tokenHttpRequestDTO.getToken());
         if (user != null) {
             return ResponseEntity.ok(new TokenHttpResponseDTO(user));
-        }
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        } else throw new TokenExpiredException("Token expired");
     }
 
     @PostMapping("/delete")

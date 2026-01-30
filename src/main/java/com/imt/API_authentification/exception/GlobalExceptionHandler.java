@@ -13,10 +13,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ValidationException.class)
     public ResponseEntity<Errors> handleValidationException(Exception ex) {
         Errors errors = new Errors(new ArrayList<>());
-        CustomError customError = new CustomError(
-                400,
-                ex.getMessage()
-        );
+        CustomError customError = new CustomError(400, ex.getMessage());
         errors.addError(customError);
 
         return ResponseEntity.badRequest().body(errors);
@@ -25,10 +22,34 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpClientErrorException.NotFound.class)
     public ResponseEntity<Errors> handleNotFoundException(Exception ex) {
         Errors errors = new Errors(new ArrayList<>());
-        CustomError customError = new CustomError(
-                404,
-                ex.getMessage()
-        );
+        CustomError customError = new CustomError(404, ex.getMessage());
+        errors.addError(customError);
+
+        return ResponseEntity.badRequest().body(errors);
+    }
+
+    @ExceptionHandler(TokenExpiredException.class)
+    public ResponseEntity<Errors> handleTokenExpiredException(Exception ex) {
+        Errors errors = new Errors(new ArrayList<>());
+        CustomError customError = new CustomError(498, ex.getMessage());
+        errors.addError(customError);
+
+        return ResponseEntity.badRequest().body(errors);
+    }
+
+    @ExceptionHandler(UserDuplicateException.class)
+    public ResponseEntity<Errors> handleUserDuplicateException(Exception ex) {
+        Errors errors = new Errors(new ArrayList<>());
+        CustomError customError = new CustomError(409, ex.getMessage());
+        errors.addError(customError);
+
+        return ResponseEntity.badRequest().body(errors);
+    }
+
+    @ExceptionHandler(UserCredsException.class)
+    public ResponseEntity<Errors> handleUserCredsException(Exception ex) {
+        Errors errors = new Errors(new ArrayList<>());
+        CustomError customError = new CustomError(401, ex.getMessage());
         errors.addError(customError);
 
         return ResponseEntity.badRequest().body(errors);
