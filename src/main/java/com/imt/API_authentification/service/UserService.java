@@ -28,4 +28,9 @@ public class UserService {
         userMongoDAO.save(user);
         return true;
     }
+
+    public void delete(String username) {
+        UserMongoDTO user = getUser(username);
+        userMongoDAO.delete(user);
+    }
 }
