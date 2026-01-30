@@ -8,10 +8,12 @@ import com.imt.API_authentification.persistence.dto.UserMongoDTO;
 import com.imt.API_authentification.service.UserService;
 import com.imt.API_authentification.utils.AuthHandler;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+@Slf4j
 @RestController
 @RequestMapping("/user")
 @RequiredArgsConstructor
@@ -43,7 +45,7 @@ public class UserController {
 
     @PostMapping("/verify-token")
     public ResponseEntity<TokenHttpResponseDTO> verifyToken(@RequestBody TokenHttpRequestDTO tokenHttpRequestDTO) {
-        System.out.println("Received token: " + tokenHttpRequestDTO.getToken());
+        log.info("Received token: {}", tokenHttpRequestDTO.getToken());
         String user = AuthHandler.validateToken(tokenHttpRequestDTO.getToken());
         if (user != null) {
             return ResponseEntity.ok(new TokenHttpResponseDTO(user));
