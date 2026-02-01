@@ -28,8 +28,8 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(errors);
     }
 
-    @ExceptionHandler(TokenExpiredException.class)
-    public ResponseEntity<Errors> handleTokenExpiredException(Exception ex) {
+    @ExceptionHandler(TokenInvalidException.class)
+    public ResponseEntity<Errors> handleTokenInvalidException(Exception ex) {
         Errors errors = new Errors(new ArrayList<>());
         CustomError customError = new CustomError(498, ex.getMessage());
         errors.addError(customError);
