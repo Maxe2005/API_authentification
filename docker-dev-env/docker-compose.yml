@@ -1,0 +1,20 @@
+services:
+  mongo:
+    image: mongo
+    container_name: mongo
+    ports:
+      - '27017:27017'
+    restart: on-failure
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=mongoadmin
+      - MONGO_INITDB_ROOT_PASSWORD=password
+
+  api_authentification:
+    build: ../
+    container_name: api_authentification
+    depends_on:
+      - mongo
+    env_file:
+      - .env
+    ports:
+      - "8080:8080"
