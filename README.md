@@ -19,5 +19,9 @@ You can now run the following:
 $ docker-compose up --build -d
 ```
 
+## Usage
+
+You can access the API documentation at `http://localhost:8080/swagger-ui/index.html`.
+
 > [!WARNING]
 > Do not deploy this project for production environments.
