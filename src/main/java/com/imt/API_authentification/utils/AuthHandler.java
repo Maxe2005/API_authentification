@@ -1,5 +1,10 @@
 package com.imt.API_authentification.utils;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.imt.API_authentification.persistence.dto.Role;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.BadPaddingException;
@@ -15,6 +20,13 @@ import java.time.LocalDateTime;
 @Component
 public class AuthHandler {
 
+    // Dedicated to the internal token format only — intentionally decoupled from any
+    // HTTP-layer/Spring-managed ObjectMapper so a future web Jackson config change can
+    // never silently break token (de)serialization.
+    private static final ObjectMapper TOKEN_MAPPER = new ObjectMapper()
+            .registerModule(new JavaTimeModule())
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
     private final SecretKey key;
 
     public AuthHandler(SecurityProperties secure) throws NoSuchAlgorithmException, InvalidKeySpecException {
@@ -27,26 +39,26 @@ public class AuthHandler {
         this.key = AESUtil.getKeyFromPassword(secure.getSecret(), secure.getSalt());
     }
 
-    public String generateToken(String username) {
+    public String generateToken(String username, Role role) {
         try {
-            String token = new Token(username).toString();
+            String token = TOKEN_MAPPER.writeValueAsString(new Token(username, role));
             return AESUtil.encryptPasswordBased(token, this.key);
-        } catch (InvalidAlgorithmParameterException | NoSuchPaddingException | IllegalBlockSizeException |
-                 NoSuchAlgorithmException | BadPaddingException | InvalidKeyException e) {
+        } catch (JsonProcessingException | InvalidAlgorithmParameterException | NoSuchPaddingException |
+                 IllegalBlockSizeException | NoSuchAlgorithmException | BadPaddingException | InvalidKeyException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public String validateToken(String token) {
+    public AuthenticatedUser validateToken(String token) {
         try {
             String rawDecryptedToken = AESUtil.decryptPasswordBased(token, key);
-            Token parsedToken = Token.fromString(rawDecryptedToken);
+            Token parsedToken = TOKEN_MAPPER.readValue(rawDecryptedToken, Token.class);
 
             if (parsedToken.getExpirationDate().isAfter(LocalDateTime.now())) {
-                return parsedToken.getUsername();
+                return new AuthenticatedUser(parsedToken.getUsername(), parsedToken.getRole());
             } else return null;
-        } catch (InvalidAlgorithmParameterException | NoSuchPaddingException | IllegalBlockSizeException |
-                 NoSuchAlgorithmException | BadPaddingException | InvalidKeyException e) {
+        } catch (JsonProcessingException | InvalidAlgorithmParameterException | NoSuchPaddingException |
+                 IllegalBlockSizeException | NoSuchAlgorithmException | BadPaddingException | InvalidKeyException e) {
             throw new RuntimeException(e);
         }
     }

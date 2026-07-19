@@ -2,6 +2,13 @@ app:
   security:
     secret: ${AUTH_SECRET}
     salt: ${AUTH_SALT}
+  default-users:
+    admin:
+      username: ${DEFAULT_ADMIN_USERNAME:}
+      password: ${DEFAULT_ADMIN_PASSWORD:}
+    user:
+      username: ${DEFAULT_USER_USERNAME:}
+      password: ${DEFAULT_USER_PASSWORD:}
 
 spring:
   data:
@@ -13,6 +20,7 @@ spring:
       password: password
       uuid-representation: standard
       authentication-database: admin
+      auto-index-creation: true
 
 # Actuator configuration
 management:

@@ -7,6 +7,7 @@ import com.imt.API_authentification.persistence.dao.UserMongoDAO;
 import com.imt.API_authentification.persistence.dto.UserMongoDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -15,10 +16,9 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
-import java.util.UUID;
-
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -27,7 +27,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(properties = {
         "spring.autoconfigure.exclude=" +
                 "org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration," +
-                "org.springframework.boot.autoconfigure.data.mongo.MongoDataAutoConfiguration"
+                "org.springframework.boot.autoconfigure.data.mongo.MongoDataAutoConfiguration",
+        "app.security.secret=integration-test-secret",
+        "app.security.salt=integration-test-salt"
 })
 @AutoConfigureMockMvc
 class UserIntegrationTest {
@@ -64,9 +66,14 @@ class UserIntegrationTest {
         String token = objectMapper.readTree(registerResult.getResponse().getContentAsString()).get("token").asText();
         assertNotNull(token);
 
+        // Capture the actually-saved (BCrypt-hashed) user so the login step compares against
+        // a real hash rather than the raw plaintext password.
+        ArgumentCaptor<UserMongoDTO> savedUserCaptor = ArgumentCaptor.forClass(UserMongoDTO.class);
+        verify(userMongoDAO).save(savedUserCaptor.capture());
+        UserMongoDTO savedUser = savedUserCaptor.getValue();
+
         // 2. Login
-        UserMongoDTO userMongoDTO = new UserMongoDTO(UUID.randomUUID(), "integrationUser", "integrationPass");
-        when(userMongoDAO.findByUsername("integrationUser")).thenReturn(userMongoDTO);
+        when(userMongoDAO.findByUsername("integrationUser")).thenReturn(savedUser);
 
         MvcResult loginResult = mockMvc.perform(post("/user/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -86,6 +93,7 @@ class UserIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(verifyDto)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.username").value("integrationUser"));
+                .andExpect(jsonPath("$.username").value("integrationUser"))
+                .andExpect(jsonPath("$.role").value("USER"));
     }
 }

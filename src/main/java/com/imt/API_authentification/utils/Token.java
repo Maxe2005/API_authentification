@@ -1,38 +1,30 @@
 package com.imt.API_authentification.utils;
 
-import lombok.Data;
-import org.springframework.cglib.core.Local;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.imt.API_authentification.persistence.dto.Role;
+import lombok.Getter;
 
 import java.time.LocalDateTime;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
-@Data
+@Getter
 public class Token {
     private final String username;
+    private final Role role;
     private final LocalDateTime expirationDate;
 
-    public Token(String username) {
+    public Token(String username, Role role) {
         this.username = username;
+        this.role = role;
         this.expirationDate = LocalDateTime.now().plusHours(1);
     }
-    public Token(String username, String expirationDate) {
+
+    @JsonCreator
+    public Token(@JsonProperty("username") String username,
+                 @JsonProperty("role") Role role,
+                 @JsonProperty("expirationDate") LocalDateTime expirationDate) {
         this.username = username;
-        if (expirationDate != null) {
-            this.expirationDate = LocalDateTime.parse(expirationDate);
-        } else {
-            this.expirationDate = LocalDateTime.now().plusHours(1);
-        };
+        this.role = role;
+        this.expirationDate = expirationDate != null ? expirationDate : LocalDateTime.now().plusHours(1);
     }
-
-    public static Token fromString(String token) {
-        Pattern pattern = Pattern.compile("username=(.*?), expirationDate=(.*?)\\)");
-        Matcher matcher = pattern.matcher(token);
-
-        if (matcher.find()) {
-            return new Token(matcher.group(1), matcher.group(2));
-        }
-        throw new IllegalArgumentException("Format de chaîne invalide");
-    }
-
 }

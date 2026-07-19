@@ -1,6 +1,7 @@
 package com.imt.API_authentification.exception;
 
 import jakarta.xml.bind.ValidationException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -53,5 +54,14 @@ public class GlobalExceptionHandler {
         errors.addError(customError);
 
         return ResponseEntity.badRequest().body(errors);
+    }
+
+    @ExceptionHandler(InsufficientRoleException.class)
+    public ResponseEntity<Errors> handleInsufficientRoleException(Exception ex) {
+        Errors errors = new Errors(new ArrayList<>());
+        CustomError customError = new CustomError(403, ex.getMessage());
+        errors.addError(customError);
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errors);
     }
 }
