@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Git workflow (required)
+
+For any piece of work beyond a trivial one-line fix: create a dedicated branch (`feat/...`, `fix/...`, `perf/...`) from `development`, commit in atomic steps with conventional-commit messages in French (`feat:`/`fix:`/`perf:`/`docs:` plus a body explaining the why), then merge back with `--no-ff`. Never commit sizeable work directly on `development` or `master`.
+
 ## Repository shape
 
 This is `API_authentification`, the Spring Boot identity service for the Gatcha game microservices. It is normally checked out as a git submodule of the root orchestration repo (`GatchaApi`), which wires it up alongside `API_joueur`, `API_monstres`, `API_invocations`, `API_generate_gatcha`, and `Gatcha_Front` via a root `docker-compose.yaml`/`Makefile`. This service is launched **exclusively** through the root repo's `docker-compose.yaml` — there is no standalone `docker-compose.yml` here anymore, and all runtime configuration (Mongo connection, `AUTH_SECRET`/`AUTH_SALT`, optional default accounts) is injected by the orchestrator (root compose `environment:` + root `.env`).
