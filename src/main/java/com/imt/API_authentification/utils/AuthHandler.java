@@ -50,13 +50,20 @@ public class AuthHandler {
     }
 
     public AuthenticatedUser validateToken(String token) {
+        Token parsedToken = decodeToken(token);
+        if (parsedToken.getExpirationDate().isAfter(LocalDateTime.now())) {
+            return new AuthenticatedUser(parsedToken.getUsername(), parsedToken.getRole());
+        } else return null;
+    }
+
+    public LocalDateTime getExpirationDate(String token) {
+        return decodeToken(token).getExpirationDate();
+    }
+
+    private Token decodeToken(String token) {
         try {
             String rawDecryptedToken = AESUtil.decryptPasswordBased(token, key);
-            Token parsedToken = TOKEN_MAPPER.readValue(rawDecryptedToken, Token.class);
-
-            if (parsedToken.getExpirationDate().isAfter(LocalDateTime.now())) {
-                return new AuthenticatedUser(parsedToken.getUsername(), parsedToken.getRole());
-            } else return null;
+            return TOKEN_MAPPER.readValue(rawDecryptedToken, Token.class);
         } catch (JsonProcessingException | InvalidAlgorithmParameterException | NoSuchPaddingException |
                  IllegalBlockSizeException | NoSuchAlgorithmException | BadPaddingException | InvalidKeyException e) {
             throw new RuntimeException(e);

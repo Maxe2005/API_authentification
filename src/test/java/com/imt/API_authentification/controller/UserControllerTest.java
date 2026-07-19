@@ -65,6 +65,9 @@ class UserControllerTest {
                 .thenReturn(new AuthenticatedUser("adminuser", Role.ADMIN));
         when(authorizationService.requireAdmin(validToken))
                 .thenThrow(new InsufficientRoleException("Admin role required"));
+
+        org.mockito.Mockito.doThrow(new TokenInvalidException("Invalid token"))
+                .when(authorizationService).logout("invalidtoken");
     }
 
     @Test
@@ -158,6 +161,64 @@ class UserControllerTest {
         mockMvc.perform(post("/user/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(userHttpDTO)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void register_shouldReturnBadRequest_whenUsernameTooShort() throws Exception {
+        UserHttpDTO userHttpDTO = new UserHttpDTO(null, null);
+        userHttpDTO.setUsername("ab");
+        userHttpDTO.setPassword("password");
+
+        mockMvc.perform(post("/user")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(userHttpDTO)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void register_shouldReturnBadRequest_whenPasswordTooShort() throws Exception {
+        UserHttpDTO userHttpDTO = new UserHttpDTO(null, null);
+        userHttpDTO.setUsername("testuser");
+        userHttpDTO.setPassword("short1");
+
+        mockMvc.perform(post("/user")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(userHttpDTO)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void register_shouldReturnBadRequest_whenUsernameHasInvalidCharacters() throws Exception {
+        UserHttpDTO userHttpDTO = new UserHttpDTO(null, null);
+        userHttpDTO.setUsername("invalid user!");
+        userHttpDTO.setPassword("password");
+
+        mockMvc.perform(post("/user")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(userHttpDTO)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void logout_shouldReturnOk_whenTokenIsValid() throws Exception {
+        TokenHttpRequestDTO tokenHttpRequestDTO = new TokenHttpRequestDTO(null);
+        tokenHttpRequestDTO.setToken(validToken);
+
+        mockMvc.perform(post("/user/logout")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(tokenHttpRequestDTO)))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void logout_shouldReturnBadRequest_whenTokenIsInvalid() throws Exception {
+        TokenHttpRequestDTO tokenHttpRequestDTO = new TokenHttpRequestDTO(null);
+        tokenHttpRequestDTO.setToken("invalidtoken");
+
+        mockMvc.perform(post("/user/logout")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(tokenHttpRequestDTO)))
                 .andExpect(status().isBadRequest());
     }
 

@@ -15,6 +15,7 @@ import com.imt.API_authentification.service.AuthorizationService;
 import com.imt.API_authentification.service.UserService;
 import com.imt.API_authentification.utils.AuthHandler;
 import com.imt.API_authentification.utils.AuthenticatedUser;
+import com.imt.API_authentification.utils.UserValidator;
 import jakarta.xml.bind.ValidationException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -31,8 +32,8 @@ public class UserController {
 
     @PostMapping
     public ResponseEntity<LoginHttpDTO> register(@RequestBody UserHttpDTO userHttpDTO) throws ValidationException, UserDuplicateException {
-        if (userHttpDTO.getUsername() == null) throw new ValidationException("Empty username");
-        if (userHttpDTO.getPassword() == null) throw new ValidationException("Empty password");
+        UserValidator.validateUsername(userHttpDTO.getUsername());
+        UserValidator.validatePassword(userHttpDTO.getPassword());
 
         if (userService.register(userHttpDTO.getUsername(), userHttpDTO.getPassword(), Role.USER)) {
             return ResponseEntity.ok(new LoginHttpDTO(authHandler.generateToken(userHttpDTO.getUsername(), Role.USER)));
@@ -58,6 +59,12 @@ public class UserController {
         return ResponseEntity.ok(new TokenHttpResponseDTO(user.username(), user.role()));
     }
 
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(@RequestBody TokenHttpRequestDTO tokenHttpRequestDTO) throws TokenInvalidException {
+        authorizationService.logout(tokenHttpRequestDTO.getToken());
+        return ResponseEntity.ok().build();
+    }
+
     @PostMapping("/delete")
     public ResponseEntity<Void> delete(@RequestBody TokenHttpRequestDTO tokenHttpRequestDTO) throws TokenInvalidException {
         AuthenticatedUser caller = authorizationService.requireValidToken(tokenHttpRequestDTO.getToken());
@@ -70,8 +77,8 @@ public class UserController {
             throws TokenInvalidException, InsufficientRoleException, ValidationException, UserDuplicateException {
         authorizationService.requireAdmin(adminRegisterHttpDTO.getToken());
 
-        if (adminRegisterHttpDTO.getUsername() == null) throw new ValidationException("Empty username");
-        if (adminRegisterHttpDTO.getPassword() == null) throw new ValidationException("Empty password");
+        UserValidator.validateUsername(adminRegisterHttpDTO.getUsername());
+        UserValidator.validatePassword(adminRegisterHttpDTO.getPassword());
         if (adminRegisterHttpDTO.getRole() == null) throw new ValidationException("Empty role");
 
         if (userService.register(adminRegisterHttpDTO.getUsername(), adminRegisterHttpDTO.getPassword(), adminRegisterHttpDTO.getRole())) {

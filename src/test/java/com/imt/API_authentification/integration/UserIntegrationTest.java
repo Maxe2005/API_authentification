@@ -3,6 +3,7 @@ package com.imt.API_authentification.integration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.imt.API_authentification.controller.dto.input.TokenHttpRequestDTO;
 import com.imt.API_authentification.controller.dto.input.UserHttpDTO;
+import com.imt.API_authentification.persistence.dao.RevokedTokenMongoDAO;
 import com.imt.API_authentification.persistence.dao.UserMongoDAO;
 import com.imt.API_authentification.persistence.dto.UserMongoDTO;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,6 +40,9 @@ class UserIntegrationTest {
 
     @MockBean
     private UserMongoDAO userMongoDAO;
+
+    @MockBean
+    private RevokedTokenMongoDAO revokedTokenMongoDAO;
 
     @Autowired
     private ObjectMapper objectMapper;

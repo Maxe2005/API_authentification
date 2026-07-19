@@ -13,10 +13,12 @@ import org.springframework.stereotype.Service;
 public class AuthorizationService {
 
     private final AuthHandler authHandler;
+    private final TokenRevocationService tokenRevocationService;
 
     public AuthenticatedUser requireValidToken(String token) throws TokenInvalidException {
         AuthenticatedUser user = authHandler.validateToken(token);
         if (user == null) throw new TokenInvalidException("Invalid token");
+        if (tokenRevocationService.isRevoked(token)) throw new TokenInvalidException("Token has been revoked");
         return user;
     }
 
@@ -24,5 +26,10 @@ public class AuthorizationService {
         AuthenticatedUser user = requireValidToken(token);
         if (user.role() != Role.ADMIN) throw new InsufficientRoleException("Admin role required");
         return user;
+    }
+
+    public void logout(String token) throws TokenInvalidException {
+        requireValidToken(token);
+        tokenRevocationService.revoke(token);
     }
 }
