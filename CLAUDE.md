@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository shape
 
-This is `API_authentification`, the Spring Boot identity service for the Gatcha game microservices. It is normally checked out as a git submodule of the root orchestration repo (`GatchaApi`), which wires it up alongside `API_joueur`, `API_monstres`, `API_invocations`, `API_generate_gatcha`, and `Gatcha_Front` via a root `docker-compose.yaml`/`Makefile`. This directory also has its own standalone `docker-compose.yml` for running the service in isolation — **do not run both the root and local compose stacks at once**, they share container names/ports (`mongo`, `8080`) and will conflict.
+This is `API_authentification`, the Spring Boot identity service for the Gatcha game microservices. It is normally checked out as a git submodule of the root orchestration repo (`GatchaApi`), which wires it up alongside `API_joueur`, `API_monstres`, `API_invocations`, `API_generate_gatcha`, and `Gatcha_Front` via a root `docker-compose.yaml`/`Makefile`. This service is launched **exclusively** through the root repo's `docker-compose.yaml` — there is no standalone `docker-compose.yml` here anymore, and all runtime configuration (Mongo connection, `AUTH_SECRET`/`AUTH_SALT`, optional default accounts) is injected by the orchestrator (root compose `environment:` + root `.env`).
 
 The service is intentionally minimal: one controller, a couple of services, one Mongo-backed repository, and a hand-rolled AES token scheme — now carrying a `USER`/`ADMIN` role. Per the README, it is **not production-hardened** — do not treat any part of this as a security-reviewed reference implementation without scrutiny.
 
@@ -19,23 +19,15 @@ From within this directory (Maven wrapper, no local Maven install needed):
 ./mvnw test -Dtest=UserControllerTest#login_shouldReturnOk_whenLoginIsSuccessful  # single test method
 ```
 
-Local Docker (standalone, self-contained — starts Mongo + this service):
+Docker (all targets drive the **root** `../docker-compose.yaml`, scoped to this service — there is no local compose):
 
 ```bash
-make up          # docker compose up -d --build
-make down         / make down-v   # down-v also wipes the mongo volume
-make ps / make logs / make build
-```
-
-As a submodule of the root repo (targets the root `docker-compose.yaml`, only this service):
-
-```bash
-make global-up / global-down / global-down-v / global-reset-volumes / global-ps / global-logs / global-restart
+make up / down / down-v / reset-volumes / ps / logs / build / restart
 ```
 
 `make help` lists all targets. There is no lint/format tooling configured for this service (unlike `API_invocations` in the sibling repo, which has spotless/checkstyle).
 
-Requires a `.env` file (see `.env.example`) with `AUTH_SECRET` and `AUTH_SALT` — the app fails fast at startup (`AuthHandler` constructor throws `IllegalStateException`) if either is missing/blank. Optionally also set `DEFAULT_ADMIN_USERNAME`/`DEFAULT_ADMIN_PASSWORD` and `DEFAULT_USER_USERNAME`/`DEFAULT_USER_PASSWORD` to seed one default admin and one default user account on startup (`config/DefaultUsersSeeder.java`, a `CommandLineRunner`) — unlike `AUTH_SECRET`/`AUTH_SALT` these are optional and idempotent: blank or already-existing accounts are silently skipped, nothing fails if they're unset.
+Requires `AUTH_SECRET` and `AUTH_SALT` (in docker they come from the root repo's `.env`; for a local `./mvnw spring-boot:run`, export them yourself — `.env.example` documents them) — the app fails fast at startup (`AuthHandler` constructor throws `IllegalStateException`) if either is missing/blank. Optionally also set `DEFAULT_ADMIN_USERNAME`/`DEFAULT_ADMIN_PASSWORD` and `DEFAULT_USER_USERNAME`/`DEFAULT_USER_PASSWORD` to seed one default admin and one default user account on startup (`config/DefaultUsersSeeder.java`, a `CommandLineRunner`) — unlike `AUTH_SECRET`/`AUTH_SALT` these are optional and idempotent: blank or already-existing accounts are silently skipped, nothing fails if they're unset.
 
 Swagger UI: `http://localhost:8080/swagger-ui/index.html` (port 8081 on the host when run via the root stack, since the root compose remaps it).
 
@@ -54,7 +46,7 @@ Flow, end to end:
 
 **Other services depend on `POST /user/verify-token` being fast and correct** — `API_joueur` and `API_monstres` call it synchronously on every incoming request via their own `AuthInterceptor`s, and `API_invocations` forwards the original caller's token here as well. `TokenHttpResponseDTO` now also carries `role` alongside `username`; the response DTOs in those three sibling services (`API_joueur`'s and `API_monstres`' `TokenResponse`, `API_invocations`' `AuthTokenResponse`) were updated to tolerate this extra field (`@JsonIgnoreProperties(ignoreUnknown = true)` + an unused `role` property), but none of them act on the role yet — no admin-gated logic exists in those services. A change to the token format, expiration semantics, or response shape of `verify-token`/`TokenHttpResponseDTO` is a cross-service breaking change, not local to this repo.
 
-Config: `application.yml` holds local defaults (localhost Mongo, `app.security.*` from env); `application-docker.yml` overrides just the Mongo host to `mongo` and is activated via `-Dspring.profiles.active=docker` in the `Dockerfile`'s `ENTRYPOINT`.
+Config: `application.yml` holds local-dev defaults (Mongo on `localhost:27019` — the port the root stack exposes — `app.security.*` from env). There is no `docker` profile anymore: in docker, everything is overridden through environment variables set by the root compose.
 
 ## Testing conventions
 

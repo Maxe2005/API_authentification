@@ -1,59 +1,39 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help up down down-v reset-volumes ps logs build \
-	global-up global-down global-down-v global-reset-volumes global-ps global-logs global-build global-restart \
+# Ce service se lance exclusivement via le docker-compose.yaml du projet
+# orchestrateur (GatchaApi), dont ce dépôt est un sous-module.
+# Il n'y a plus de docker-compose local : toutes les cibles ci-dessous
+# pilotent la stack racine, restreinte à ce service.
+COMPOSE = docker compose -f ../docker-compose.yaml
+SVC = api-authentification
+
+.PHONY: help up down down-v reset-volumes ps logs build restart
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-28s\033[0m %s\n", $$1, $$2}'
 
-# ===== Self-contained =====
-
-up: ## Build (if needed) and start the service
-	docker compose up -d --build
+up: ## Build (if needed) and start this service (via the orchestrator stack)
+	$(COMPOSE) up -d --build $(SVC)
 
 down: ## Stop and remove this service (keeps volumes)
-	docker compose down
+	$(COMPOSE) down $(SVC)
 
-down-v: ## Stop and remove this service and its volumes (destructive: wipes all DB/minio data)
-	docker compose down -v
+down-v: ## Stop this service and remove the stack volumes (destructive: wipes DB data)
+	$(COMPOSE) down -v $(SVC)
 
-reset-volumes: ## Reset all volumes and restart the service fresh
-	docker compose down -v
-	docker compose up -d
+reset-volumes: ## Reset volumes and restart this service fresh
+	$(COMPOSE) down -v $(SVC)
+	$(COMPOSE) up -d $(SVC)
 
-ps: ## Show status of all containers in the service
-	docker compose ps
+ps: ## Show status of this service's container
+	$(COMPOSE) ps $(SVC)
 
 logs: ## Tail logs for this service
-	docker compose logs -f
+	$(COMPOSE) logs -f $(SVC)
 
-build: ## Build this service images
-	docker compose build
+build: ## Build this service's image
+	$(COMPOSE) build $(SVC)
 
-# ===== As a Submodule =====
-
-global-up: ## Start the service (if not already running)
-	docker compose -f ../docker-compose.yaml up -d --build api-authentification
-
-global-down: ## Stop the service (if running)
-	docker compose -f ../docker-compose.yaml down api-authentification
-
-global-down-v: ## Stop the service and remove its volumes (destructive: wipes all DB/minio data)
-	docker compose -f ../docker-compose.yaml down -v api-authentification
-
-global-reset-volumes: ## Reset all volumes and restart the service fresh
-	docker compose -f ../docker-compose.yaml down -v api-authentification
-	docker compose -f ../docker-compose.yaml up -d api-authentification
-
-global-ps: ## Show status of all containers in the service
-	docker compose -f ../docker-compose.yaml ps api-authentification
-
-global-logs: ## Tail logs for this service
-	docker compose -f ../docker-compose.yaml logs -f api-authentification
-
-global-build: ## Build this service images
-	docker compose -f ../docker-compose.yaml build api-authentification
-
-global-restart: ## Rebuild and restart this service (config/code change)
-	docker compose -f ../docker-compose.yaml down api-authentification
-	docker compose -f ../docker-compose.yaml up -d --build api-authentification
+restart: ## Rebuild and restart this service (config/code change)
+	$(COMPOSE) down $(SVC)
+	$(COMPOSE) up -d --build $(SVC)

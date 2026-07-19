@@ -8,4 +8,4 @@ RUN mvn clean package
 FROM amazoncorretto:21.0.2-alpine3.19
 COPY --from=build /Api_authentification/target/*.jar /app.jar
 EXPOSE 8080/tcp
-ENTRYPOINT ["java", "-Dspring.profiles.active=docker", "-jar", "/app.jar"]
+ENTRYPOINT ["java", "-jar", "/app.jar"]

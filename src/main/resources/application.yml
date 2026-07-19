@@ -14,8 +14,8 @@ spring:
   data:
     mongodb:
       host: localhost
-      port: 27017
-      database: users
+      port: 27019
+      database: auth_db
       username: mongoadmin
       password: password
       uuid-representation: standard
