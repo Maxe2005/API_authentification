@@ -1,6 +1,8 @@
 package com.imt.API_authentification.controller;
 
 import com.imt.API_authentification.controller.dto.input.AdminRegisterHttpDTO;
+import com.imt.API_authentification.controller.dto.input.LogoutHttpRequestDTO;
+import com.imt.API_authentification.controller.dto.input.RefreshTokenHttpRequestDTO;
 import com.imt.API_authentification.controller.dto.input.TokenHttpRequestDTO;
 import com.imt.API_authentification.controller.dto.input.UserHttpDTO;
 import com.imt.API_authentification.controller.dto.output.LoginHttpDTO;
@@ -12,8 +14,8 @@ import com.imt.API_authentification.exception.UserDuplicateException;
 import com.imt.API_authentification.persistence.dto.Role;
 import com.imt.API_authentification.persistence.dto.UserMongoDTO;
 import com.imt.API_authentification.service.AuthorizationService;
+import com.imt.API_authentification.service.TokenPair;
 import com.imt.API_authentification.service.UserService;
-import com.imt.API_authentification.utils.AuthHandler;
 import com.imt.API_authentification.utils.AuthenticatedUser;
 import com.imt.API_authentification.utils.UserValidator;
 import jakarta.xml.bind.ValidationException;
@@ -27,7 +29,6 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final UserService userService;
-    private final AuthHandler authHandler;
     private final AuthorizationService authorizationService;
 
     @PostMapping
@@ -36,7 +37,8 @@ public class UserController {
         UserValidator.validatePassword(userHttpDTO.getPassword());
 
         if (userService.register(userHttpDTO.getUsername(), userHttpDTO.getPassword(), Role.USER)) {
-            return ResponseEntity.ok(new LoginHttpDTO(authHandler.generateToken(userHttpDTO.getUsername(), Role.USER)));
+            TokenPair tokens = authorizationService.issueTokenPair(userHttpDTO.getUsername(), Role.USER);
+            return ResponseEntity.ok(new LoginHttpDTO(tokens.accessToken(), tokens.refreshToken()));
         } else throw new UserDuplicateException("User already exists");
     }
 
@@ -49,8 +51,15 @@ public class UserController {
         if (user == null) throw new ValidationException("User not found");
 
         if (userService.checkPassword(user, userHttpDTO.getPassword())) {
-            return ResponseEntity.ok(new LoginHttpDTO(authHandler.generateToken(user.getUsername(), user.getRole())));
+            TokenPair tokens = authorizationService.issueTokenPair(user.getUsername(), user.getRole());
+            return ResponseEntity.ok(new LoginHttpDTO(tokens.accessToken(), tokens.refreshToken()));
         } else throw new UserCredsException("Incorrect username or password");
+    }
+
+    @PostMapping("/refresh-token")
+    public ResponseEntity<LoginHttpDTO> refreshToken(@RequestBody RefreshTokenHttpRequestDTO refreshTokenHttpRequestDTO) throws TokenInvalidException {
+        TokenPair tokens = authorizationService.refresh(refreshTokenHttpRequestDTO.getRefreshToken());
+        return ResponseEntity.ok(new LoginHttpDTO(tokens.accessToken(), tokens.refreshToken()));
     }
 
     @PostMapping("/verify-token")
@@ -60,8 +69,8 @@ public class UserController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(@RequestBody TokenHttpRequestDTO tokenHttpRequestDTO) throws TokenInvalidException {
-        authorizationService.logout(tokenHttpRequestDTO.getToken());
+    public ResponseEntity<Void> logout(@RequestBody LogoutHttpRequestDTO logoutHttpRequestDTO) throws TokenInvalidException {
+        authorizationService.logout(logoutHttpRequestDTO.getToken(), logoutHttpRequestDTO.getRefreshToken());
         return ResponseEntity.ok().build();
     }
 
@@ -82,7 +91,8 @@ public class UserController {
         if (adminRegisterHttpDTO.getRole() == null) throw new ValidationException("Empty role");
 
         if (userService.register(adminRegisterHttpDTO.getUsername(), adminRegisterHttpDTO.getPassword(), adminRegisterHttpDTO.getRole())) {
-            return ResponseEntity.ok(new LoginHttpDTO(authHandler.generateToken(adminRegisterHttpDTO.getUsername(), adminRegisterHttpDTO.getRole())));
+            TokenPair tokens = authorizationService.issueTokenPair(adminRegisterHttpDTO.getUsername(), adminRegisterHttpDTO.getRole());
+            return ResponseEntity.ok(new LoginHttpDTO(tokens.accessToken(), tokens.refreshToken()));
         } else throw new UserDuplicateException("User already exists");
     }
 

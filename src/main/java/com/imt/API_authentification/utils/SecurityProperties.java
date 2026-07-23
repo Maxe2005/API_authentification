@@ -12,4 +12,5 @@ import org.springframework.context.annotation.Configuration;
 public class SecurityProperties {
     private String secret;
     private String salt;
+    private int refreshTokenTtlDays;
 }

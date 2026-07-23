@@ -2,6 +2,8 @@ package com.imt.API_authentification.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.imt.API_authentification.controller.dto.input.AdminRegisterHttpDTO;
+import com.imt.API_authentification.controller.dto.input.LogoutHttpRequestDTO;
+import com.imt.API_authentification.controller.dto.input.RefreshTokenHttpRequestDTO;
 import com.imt.API_authentification.controller.dto.input.TokenHttpRequestDTO;
 import com.imt.API_authentification.controller.dto.input.UserHttpDTO;
 import com.imt.API_authentification.exception.InsufficientRoleException;
@@ -9,8 +11,8 @@ import com.imt.API_authentification.exception.TokenInvalidException;
 import com.imt.API_authentification.persistence.dto.Role;
 import com.imt.API_authentification.persistence.dto.UserMongoDTO;
 import com.imt.API_authentification.service.AuthorizationService;
+import com.imt.API_authentification.service.TokenPair;
 import com.imt.API_authentification.service.UserService;
-import com.imt.API_authentification.utils.AuthHandler;
 import com.imt.API_authentification.utils.AuthenticatedUser;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,6 +24,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.UUID;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
@@ -39,9 +42,6 @@ class UserControllerTest {
     private UserService userService;
 
     @MockBean
-    private AuthHandler authHandler;
-
-    @MockBean
     private AuthorizationService authorizationService;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -54,7 +54,8 @@ class UserControllerTest {
         validToken = "valid-token-for-tests";
         adminToken = "admin-token-for-tests";
 
-        when(authHandler.generateToken("testuser", Role.USER)).thenReturn(validToken);
+        when(authorizationService.issueTokenPair(anyString(), any(Role.class)))
+                .thenReturn(new TokenPair(validToken, "refresh-token-for-tests"));
 
         when(authorizationService.requireValidToken(validToken))
                 .thenReturn(new AuthenticatedUser("testuser", Role.USER));
@@ -67,7 +68,7 @@ class UserControllerTest {
                 .thenThrow(new InsufficientRoleException("Admin role required"));
 
         org.mockito.Mockito.doThrow(new TokenInvalidException("Invalid token"))
-                .when(authorizationService).logout("invalidtoken");
+                .when(authorizationService).logout(eq("invalidtoken"), any());
     }
 
     @Test
@@ -202,23 +203,64 @@ class UserControllerTest {
 
     @Test
     void logout_shouldReturnOk_whenTokenIsValid() throws Exception {
-        TokenHttpRequestDTO tokenHttpRequestDTO = new TokenHttpRequestDTO(null);
-        tokenHttpRequestDTO.setToken(validToken);
+        LogoutHttpRequestDTO logoutHttpRequestDTO = new LogoutHttpRequestDTO(null, null);
+        logoutHttpRequestDTO.setToken(validToken);
 
         mockMvc.perform(post("/user/logout")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(tokenHttpRequestDTO)))
+                        .content(objectMapper.writeValueAsString(logoutHttpRequestDTO)))
                 .andExpect(status().isOk());
     }
 
     @Test
     void logout_shouldReturnBadRequest_whenTokenIsInvalid() throws Exception {
-        TokenHttpRequestDTO tokenHttpRequestDTO = new TokenHttpRequestDTO(null);
-        tokenHttpRequestDTO.setToken("invalidtoken");
+        LogoutHttpRequestDTO logoutHttpRequestDTO = new LogoutHttpRequestDTO(null, null);
+        logoutHttpRequestDTO.setToken("invalidtoken");
 
         mockMvc.perform(post("/user/logout")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(tokenHttpRequestDTO)))
+                        .content(objectMapper.writeValueAsString(logoutHttpRequestDTO)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void logout_shouldRevokeRefreshToken_whenProvided() throws Exception {
+        LogoutHttpRequestDTO logoutHttpRequestDTO = new LogoutHttpRequestDTO(null, null);
+        logoutHttpRequestDTO.setToken(validToken);
+        logoutHttpRequestDTO.setRefreshToken("some-refresh-token");
+
+        mockMvc.perform(post("/user/logout")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(logoutHttpRequestDTO)))
+                .andExpect(status().isOk());
+
+        org.mockito.Mockito.verify(authorizationService).logout(validToken, "some-refresh-token");
+    }
+
+    @Test
+    void refreshToken_shouldReturnOk_whenRefreshTokenIsValid() throws Exception {
+        when(authorizationService.refresh("valid-refresh")).thenReturn(new TokenPair("new-access-token", "new-refresh-token"));
+
+        RefreshTokenHttpRequestDTO dto = new RefreshTokenHttpRequestDTO("valid-refresh");
+
+        mockMvc.perform(post("/user/refresh-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").value("new-access-token"))
+                .andExpect(jsonPath("$.refreshToken").value("new-refresh-token"));
+    }
+
+    @Test
+    void refreshToken_shouldReturnBadRequest_whenRefreshTokenIsInvalid() throws Exception {
+        when(authorizationService.refresh("invalid-refresh"))
+                .thenThrow(new TokenInvalidException("Invalid refresh token"));
+
+        RefreshTokenHttpRequestDTO dto = new RefreshTokenHttpRequestDTO("invalid-refresh");
+
+        mockMvc.perform(post("/user/refresh-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isBadRequest());
     }
 
@@ -273,7 +315,8 @@ class UserControllerTest {
         AdminRegisterHttpDTO dto = new AdminRegisterHttpDTO(adminToken, "newadmin", "password", Role.ADMIN);
 
         when(userService.register("newadmin", "password", Role.ADMIN)).thenReturn(true);
-        when(authHandler.generateToken("newadmin", Role.ADMIN)).thenReturn("new-admin-token");
+        when(authorizationService.issueTokenPair("newadmin", Role.ADMIN))
+                .thenReturn(new TokenPair("new-admin-token", "new-admin-refresh-token"));
 
         mockMvc.perform(post("/user/admin/register")
                         .contentType(MediaType.APPLICATION_JSON)
