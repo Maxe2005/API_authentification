@@ -5,8 +5,10 @@ import lombok.Data;
 @Data
 public class LoginHttpDTO {
     private String token;
+    private String refreshToken;
 
-    public LoginHttpDTO(String token) {
+    public LoginHttpDTO(String token, String refreshToken) {
         this.token = token;
+        this.refreshToken = refreshToken;
     }
 }
