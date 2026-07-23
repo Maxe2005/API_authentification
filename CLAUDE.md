@@ -31,9 +31,11 @@ make up / down / down-v / reset-volumes / ps / logs / build / restart
 
 `make help` lists all targets. There is no lint/format tooling configured for this service (unlike `API_invocations` in the sibling repo, which has spotless/checkstyle).
 
-Requires `AUTH_SECRET` and `AUTH_SALT` (in docker they come from the root repo's `.env`; for a local `./mvnw spring-boot:run`, export them yourself — `.env.example` documents them) — the app fails fast at startup (`AuthHandler` constructor throws `IllegalStateException`) if either is missing/blank. Optionally also set `DEFAULT_ADMIN_USERNAME`/`DEFAULT_ADMIN_PASSWORD` and `DEFAULT_USER_USERNAME`/`DEFAULT_USER_PASSWORD` to seed one default admin and one default user account on startup (`config/DefaultUsersSeeder.java`, a `CommandLineRunner`) — unlike `AUTH_SECRET`/`AUTH_SALT` these are optional and idempotent: blank or already-existing accounts are silently skipped, nothing fails if they're unset.
+Requires `AUTH_SECRET` and `AUTH_SALT` (in docker they come from the root repo's `.env`; for a local `./mvnw spring-boot:run`, export them yourself — `.env.example` documents them) — the app fails fast at startup (`AuthHandler` constructor throws `IllegalStateException`) if either is missing/blank. Optionally also set `DEFAULT_ADMIN_USERNAME`/`DEFAULT_ADMIN_PASSWORD` and `DEFAULT_USER_USERNAME`/`DEFAULT_USER_PASSWORD` to seed one default admin and one default user account on startup (`config/DefaultUsersSeeder.java`, a `CommandLineRunner`) — unlike `AUTH_SECRET`/`AUTH_SALT` these are optional and idempotent: blank or already-existing accounts are silently skipped, nothing fails if they're unset. `AUTH_REFRESH_TOKEN_TTL_DAYS` (optional, defaults to 30) controls how long refresh tokens stay valid (`POST /user/refresh-token`).
 
 Swagger UI: `http://localhost:8080/swagger-ui/index.html` (port 8081 on the host when run via the root stack, since the root compose remaps it).
+
+**Environment variables live in the root repo, not here**: this repo's own `.env.example` only documents variables for running outside Docker (`./mvnw spring-boot:run`). The actual dockerized stack reads exclusively from the root repo's `.env`/`.env.exemple` plus this service's `environment:` block in the root `docker-compose.yaml` — any new variable this service needs must be added there, or it will silently be absent when the stack runs via `make up`.
 
 ## Architecture
 
