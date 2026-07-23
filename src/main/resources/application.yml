@@ -2,6 +2,7 @@ app:
   security:
     secret: ${AUTH_SECRET}
     salt: ${AUTH_SALT}
+    refresh-token-ttl-days: ${AUTH_REFRESH_TOKEN_TTL_DAYS:30}
   default-users:
     admin:
       username: ${DEFAULT_ADMIN_USERNAME:}
