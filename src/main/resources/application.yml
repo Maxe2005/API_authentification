@@ -32,3 +32,9 @@ management:
   endpoint:
     health:
       show-details: always
+
+# Story 2.1 — corrélation X-Request-Id : le pattern console par défaut n'affiche pas le MDC, on
+# ajoute donc l'identifiant (clé MDC posée par XRequestIdLoggingFilter) à chaque ligne de log.
+logging:
+  pattern:
+    level: "%5p [%X{X-Request-Id:-}]"
